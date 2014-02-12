@@ -1,3 +1,83 @@
+/**
+ * Ollibolli javascript inheritence
+ * The goal of this is to create a simple prototyping and maintain the prototype chain.  
+ * Using the javascript constructor function as the constructor and not breaking the prototype chain
+ * by copying functions. And be able to verify constructor parameters in the constructor function. 
+ *
+ * 
+ * 
+ * Big contributor is Juan Mendes (http://js-bits.blogspot.se/);
+ */
+
+
+/**
+ * This is the core function for Ollibolli javascript Inheritence
+ * By copying the prototype of the prototyping object to a surrogate Constructor function and using the 
+ * new on that prevent using the constructor function. 
+ *   
+ */
+
+Function.prototype.Extend = function(parent){	
+	eval('var surrogateConstructor = function '+ parent.name + '(){}');	
+	surrogateConstructor.prototype = parent.prototype;
+
+	this.initSuper = function initSuper(obj,argument){
+		// initSuper.caller == Super 
+		if (typeof initSuper.caller === "function" 
+			&& initSuper.caller.prototype 
+			&& initSuper.caller.toString() == this.prototype.Super.toString()
+		){
+			parent.apply(obj,argument);
+		} else {
+			throw new Error('initSuper not called from Super');
+		}
+	}	
+
+	
+	this.prototype = new surrogateConstructor();
+	this.prototype.constructor = this;
+
+	/* adding 
+
+	/**
+	* A function equal to super. Use only in constructor Functions
+ 	* Important to always call Super in the extended constructor function. 
+ 	* By calling Super, every constructor in the prototype chain is applied on the new object 
+ 	*/
+	this.prototype.Super = function Super(){
+		if (typeof Super.caller == "function" 
+			&& Super.caller.prototype 
+			&& Super.caller.prototype.Super.toString() == Super.toString()
+		){
+			Super.caller.initSuper(this,arguments)
+		} else {
+			throw new Error("Super called from non constructor function");
+		}
+	}
+	
+	/*
+	 * @return String
+	 */
+	this.prototype.toString = function toString(){
+		return '[object '+this.getType+' ]';
+	}
+	
+	this.prototype.toType = (function toType(global) {
+	  return function(obj) {
+	    if (obj === global) {
+	      return "global";
+	    }
+	    return ({}).toString.call(obj).match(/\s([a-z|A-Z]+)/)[1].toLowerCase();
+	  }
+	})(this);
+
+	this.prototype.getInstanceOf = function getInstanceOf(){
+		return getPrototypeStringOf(this);
+	};
+
+};
+
+
 																														 
 function getPrototypeStringOf(obj) {
     var funcNameRegex = /function (.{1,})\(/;
@@ -140,64 +220,14 @@ function uniqueArray(origArr) {
 }
 
 ;
-/**
- * Ollibolli javascript inheritence
- * The goal of this is to create a simple prototyping.  
- * Using the javascript constructor function as the constructor and not breaking the prototype chain
- * by copying functions. And be able to verify constructor parameters in the constructor function. 
- *
- * 
- * 
- * Big contributor is Juan Mendes (http://js-bits.blogspot.se/);
- */
-
-
-/**
- * This is the core function for Ollibolli javascript Inheritence
- * By copying the prototype of the prototyping object to a surrogate Constructor function and using the new on that prevent 
- * using the constructor function.  
- */
-
-Function.prototype.Extend = (function(parent, methods){	
-	
-	//using a surrogate constructor to prevent the using the new on the   
-	eval('var surrogateConstructor = function '+ parent.name + '(){}');
-	
-	function extend(base, sub){
-		surrogateConstructor.prototype = base.prototype;
-		sub.prototype = new surrogateConstructor();
-		sub.prototype.constructor = sub;
-		sub.prototype.$ = base.prototype;	
-	}
-	
-	function addMethods(obj,methods){
-		if ( methods || methods instanceof Array){
-			for (var method in methods){
-				obj.prototype[method] = method;
-			}
-		}
-	}
-	
-	extend (parent,this);
-	addMethods(this,methods);
-})();
-
 
 /**
  * Object father off all 
  */
 
-function Base(){};
 
-/**
- * A function equal to super. use this only in constructor Functions
- * Important to always call Super in the extended constructor function. 
- * By calling Super, every constructor in the prototype chain is applied on the new object 
- *
- */
-Base.prototype.Super = function(){
-	this.$.constructor.apply(this.$,arguments);
-}
+Base.Extend(Object);
+function Base(){};
 
 Base.prototype.getInstanceOfName = function (){
 	var funcNameRegex = /function (.{1,})\(/;
@@ -238,11 +268,13 @@ Entity.prototype.removeComponent = function(componentType){
 Entity.prototype.update = function(){
     if (this._components.hasOwnProperty('AIControle')){
         this._components.AIControle.update();
-    } 
+    }
+    if (this._components.hasOwnProperty('UserControle')){
+        this._components.UserControle.update();
+    }
     if (this._components.hasOwnProperty('Sound')){
         this._components.Sound.update();
     }
-
 };
 
 Entity.prototype.trigger = function(event){
@@ -319,8 +351,8 @@ function EntityHandler () {
 EntityHandler.prototype.add = function(entity) {
     if (entity instanceof Entity){
         this.entities.push(entity);
-        if(entity.hasOwnProperty('Pos')){
-            this.addEntityOnTile(entity.Pos.getTile(),entity);
+        if(entity.getComponents().hasOwnProperty('Pos')){
+            Game.tileHandler.addEntityOnTile(entity.getComponents().Pos.getTile(),entity);
         }
     };
 };
@@ -330,7 +362,7 @@ EntityHandler.prototype.removeLast = function() {
 };
 	
 EntityHandler.prototype.remove = function(entity) {
-	    Game.tileHandler.removeEntity(entity,entity.Pos.getTile());
+	    Game.tileHandler.removeEntity(entity,entity.getComponents().Pos.getTile());
 	    for (var i = 0 ;i < this.entities.length; i++){
 	        if (this.entities[i] == entity ){
 	            this.entities.splice(i,1);
@@ -431,9 +463,10 @@ Component.prototype.setEntity = function setEntity(entity) {
 
 
 // Implement this
-Component.prototype.handleEvent = function(event) {
-	throw new NotImplementedError('handleEvent Not Implemented');
+Component.prototype.getEntityComponents = function() {
+    return this._entity._components;
 };
+
 
 /**
  * @param entity - of class Entity
@@ -579,12 +612,10 @@ Renderable.presentation.score = function(pos){
 
 Renderable.presentation.packman = function(pos){
     //TODO CALCULATE CENTER OF FIG
-    //this._cContext.drawImage(Game.preloadedImages[0],pos.getX()-10,pos.getY()-10);
     this._cContext.beginPath();
     this._cContext.arc(pos.getX(), pos.getY(), 13, 0, 2 * Math.PI, false);
     this._cContext.fillStyle = "#0ff";
     this._cContext.fill();
-
 };
 
 Renderable.presentation.ghost1 = function(pos){
@@ -689,7 +720,7 @@ function Collision(entity,entityDiameter){
     if(entityDiameter){
         this.diameter = entityDiameter;
     }else{
-       // throw "Collision.constructor - No entityDiameter Parameter";
+        throw "Collision.constructor - No entityDiameter Parameter";
     }
     this.dependencies = ["Pos"];
 };
@@ -727,7 +758,7 @@ Collision.prototype.detect = function(direction){
         } else {  //use entitys own position;
             collObj = this._getCollisionObjFromPos(that.Pos.getX(),that.Pos.getY(),collObj);
         }
-        //collObj.entities = uniqueArray(collObj.entities);
+        collObj.entities = uniqueArray(collObj.entities);
         return collObj;
 
     }else {
@@ -743,8 +774,8 @@ Collision.prototype._getEntitiesOnTile= function(x,y){
     var collisionEntities = [];
 	for (var i in tileEntities){
 		if (tileEntities[i] == undefined ) log('Collision.getEntitiesOnTile',tileEntities);
-		if (tileEntities[i]._components.hasOwnProperty('Collision')){
-            if (!(tileEntities[i].getEntityComponents().Collision == this.getEntityComponents().Collision)){
+        if (tileEntities[i].getComponents().hasOwnProperty('Collision')){
+            if (!(tileEntities[i].getComponents().Collision == this.getEntityComponents().Collision)){
                 collisionEntities.push(tileEntities[i]);
             }
         }
@@ -759,9 +790,8 @@ Collision.prototype._getEntitiesOnTile= function(x,y){
 Collision.prototype._getCollisionObjFromPos = function (x,y,collObj){
     var entities;
     if( x && y && collObj){
-        if (this._getEntitiesOnTile(x,y)) {
+        if (entities = this._getEntitiesOnTile(x,y)) {
             collObj.collision = true;
-            entities = this._getEntitiesOnTile(x,y);
             for (var i in entities){
                 collObj.entities.push(entities[i]);
             }
@@ -774,11 +804,11 @@ Collision.prototype._getCollisionObjFromPos = function (x,y,collObj){
 
 AIControle.Extend(Component);
 
-function AIControle(entity, startingDirection,pathfind,collision){
+function AIControle(entity, startingDirection,pathfind,collision,target){
 	if (!(entity instanceof Entity)) throw new Error('STORERROR');
 	this.Super(entity); 
     this._direction = startingDirection;
-    this._target;
+    this._target = target;
     this._pathfind = pathfind;
     this._collision = collision;
 } ;
@@ -832,22 +862,23 @@ AIControle.prototype.getTarget=function(){
 };
 
 AIControle.prototype._isMovementThouCollision = function(collisionObj){
-    that = this.getEntityComponents();
+    var that = this.getEntityComponents();
     var move = true;
     var hitUser = false;
     for (var i in collisionObj.entities) {
-        if(collisionObj.entities[i].hasOwnProperty('UserControle')){     //TODO Fix this ugly
+        if(collisionObj.entities[i].getComponents().hasOwnProperty('UserControle')){     //TODO Fix this ugly
             if (!hitUser){
                 this._collision(that,'UserControle');
-                //that.trigger('UserCollition');
+                Game.stop();
+                //alert('Game over');
                 hitUser = true;
             }
             move = true;
-        }else if (collisionObj.entities[i].hasOwnProperty("Wall")){       
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty("Wall")){
             return false;
-        }else if (collisionObj.entities[i].hasOwnProperty('AIControle')){
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty('AIControle')){
             return false;
-        }else if (collisionObj.entities[i].hasOwnProperty('Point')){
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty('Point')){
             move = true;
         }
     }
@@ -855,7 +886,7 @@ AIControle.prototype._isMovementThouCollision = function(collisionObj){
 }
 
 AIControle.prototype.checkMovementCollisions = function (dir){
-    that = this.getEntityComponents();
+    var that = this.getEntityComponents();
     var collisionObj;
     switch (dir){
         case Dir.RIGHT: 
@@ -919,11 +950,11 @@ AIControle.prototype._getClosestDirToTarget = function(availableDirs,target){
  */
 AIControle.prototype._distToTargetIn2 = function(xOffset,yOffset,target){
     if (isNaN(xOffset) || isNaN(yOffset)) throw new Error("AIControle._distToTarget - parameter not a valid number");
-	if (!target) throw new Error("AIControle._distToTarget - no target" + getPrototypeStringOf(target));
+	if (!target) throw new Error("AIControle._distToTarget - no target");
 	var that = this.getEntityComponents();
     var targetPos ={};
-    targetPos.x=target.Pos.getX();
-    targetPos.y=target.Pos.getY();
+    targetPos.x=target.getComponents().Pos.getX();
+    targetPos.y=target.getComponents().Pos.getY();
     var deltaX = Math.abs(targetPos.x - that.Pos.getX()+xOffset);
     var deltaY = Math.abs(targetPos.y - that.Pos.getY()+yOffset);//Math.round(BRICK_WIDTH/2));
     return (deltaX*deltaX)+(deltaY*deltaY);
@@ -1013,14 +1044,14 @@ AIControle.pathfinding.semiAgressive = function(callback){
         var pos1= {};
         var pos2= {};
         var retPos={};
-        pos1.x = ent1.Pos.getX();
-        pos1.y = ent1.Pos.getY();
-        pos2.x = ent2.Pos.getX();
-        pos2.y = ent2.Pos.getY();
+        pos1.x = ent1.getComponents().Pos.getX();
+        pos1.y = ent1.getComponents().Pos.getY();
+        pos2.x = ent2.getComponents().Pos.getX();
+        pos2.y = ent2.getComponents().Pos.getY();
         retPos.x=pos1.x + Math.round((pos2.x-pos1.x)/2);
         retPos.y=pos1.y + Math.round((pos2.y-pos1.y)/2);
         var temporaryEntity= new Entity("tempEntity");
-        temporaryEntity.addComponent(new Pos(retPos.x ,retPos.y));
+        temporaryEntity.addComponent(new Pos(temporaryEntity,retPos.x ,retPos.y));
         direkt = this._getClosestDirToTarget(availableDirs,temporaryEntity);
 
         return direkt;
@@ -1301,9 +1332,6 @@ function UserControle(entity) {
 
 UserControle.Extend(Component)
 
-UserControle.prototype = new Component();
-UserControle.prototype.constructor = UserControle;
-
 UserControle.prototype.handleEvent = function(event){
 	if (event instanceof Event){
 		switch (event.type) {
@@ -1373,7 +1401,7 @@ UserControle.prototype._isMovementThouCollision = function (dir){
         move=true;
     } else {
         for (var i in collisionObj.entities) {
-            if (collisionObj.entities[i].hasOwnProperty("Wall")){ //TODO UGLY
+            if (collisionObj.entities[i].getComponents().hasOwnProperty("Wall")){ //TODO UGLY
                 move = false;
             } else {
                 this._collision(collisionObj);
@@ -1391,8 +1419,8 @@ UserControle.prototype._checkAndCollectPoints = function(){
         var collisionObj= that.Collision.detect(undefined);
         if (collisionObj.collision){
             for (var i in collisionObj.entities) {
-                if (collisionObj.entities[i].hasOwnProperty("Point")){ //TODO ugly hardcoded
-                    collisionObj.entities[i].Point.collect(collisionObj.entities[i]);
+                if (collisionObj.entities[i].getComponents().hasOwnProperty("Point")){ //TODO ugly hardcoded
+                    collisionObj.entities[i].getComponents().Point.collect(collisionObj.entities[i]);
                     return;
                 }
             }
@@ -1403,13 +1431,13 @@ UserControle.prototype._checkAndCollectPoints = function(){
 
 UserControle.collisionConsecvences = {};
 UserControle.collisionConsecvences.scared = function(collisionObj){
-    if(collisionObj.entities[0].hasOwnProperty('AIControle')){
-        collisionObj.entities[0].AIControle._collision(collisionObj.entities[0]);
+    if(collisionObj.entities[0].getComponents().hasOwnProperty('AIControle')){
+        collisionObj.entities[0].getComponents().AIControle._collision(collisionObj.entities[0]);
     }
 };
 
 UserControle.collisionConsecvences.chase = function(collisionObj){
-     if(collisionObj.entities[0].hasOwnProperty('AIControle')){
+     if(collisionObj.entities[0].getComponents().hasOwnProperty('AIControle')){
          document.getElementById('messageArea').textContent="Game Over";
          Game.stop();
      }
@@ -1605,7 +1633,7 @@ Moveable.prototype.isCenterOfTile = function (){
 
 
 var Game = {
-    fps:10,
+    fps:20,
     width: undefined,
     height: undefined,
     score: 0
@@ -1682,7 +1710,7 @@ Game.draw = function() {
 
 Game.update= function(){
     Game.entityHandler.updateMovable();
-    //Game.entityHandler.trigger(events.update);
+    Game.entityHandler.update();
 };
 
 Game.stop = function(){
@@ -1723,12 +1751,12 @@ Game.init = function(width,height,element,callback) {
 
 Game._loadScene = function(gameScene){
 
-    var addWall = function(x,y){
+    var addWall = function(x,y,diameter){
         var e1 = new Entity("wall:"+x+","+y+":");
         e1.addComponent(new Pos(e1,x*BRICK_WIDTH,y*BRICK_HEIGHT));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.wall));
         e1.addComponent(new Wall());
-        e1.addComponent(new Collision(20));
+        e1.addComponent(new Collision(e1,20));
         
         Game.entityHandler.add(e1);
     };
@@ -1745,7 +1773,7 @@ Game._loadScene = function(gameScene){
         e1.addComponent((new Pos(e1,(x*BRICK_WIDTH)+Math.round(BRICK_WIDTH/2),(y*BRICK_HEIGHT)+Math.round(BRICK_HEIGHT/2))));
         e1.addComponent(new Point(10,Point.collectActions.dot,true));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.dot));
-        e1.addComponent(new Collision(10));
+        e1.addComponent(new Collision(e1,10));
         Game.entityHandler.add(e1);
     };
 
@@ -1754,7 +1782,7 @@ Game._loadScene = function(gameScene){
         e1.addComponent((new Pos(e1,(x*BRICK_WIDTH)+Math.round(BRICK_WIDTH/2),(y*BRICK_HEIGHT)+Math.round(BRICK_HEIGHT/2))));
         e1.addComponent(new Point(50,Point.collectActions.bigDot,true));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.bigDot));
-        e1.addComponent(new Collision(10));
+        e1.addComponent(new Collision(e1,10));
 
         Game.entityHandler.add(e1);
     };
@@ -1781,32 +1809,42 @@ Game._loadEntitys= function(){
     stateMachine.addState("scared",{sound:Sound.sounds.scared});
     stateMachine.addState("chase",{sound:Sound.sounds.chase});
     e1.addComponent(stateMachine);
-    Game.entityHandler.add(e1);
-	*/
+    Game.entityHandler.add(e1);*/
+
     var e1 = new Entity("Score");
     e1.addComponent(new Pos(e1,10,10));
     e1.addComponent(new Renderable(Game.context,Renderable.presentation.score));
     Game.entityHandler.add(e1);
 
-    var e1 = new Entity("Player");
-    e1.addComponent(new Pos(e1,14*BRICK_WIDTH,25*BRICK_HEIGHT+10));
+/*    var e1 = new Entity("Player");
+    e1.addComponent(new Pos(e1,14*BRICK_WIDTH,25*BRICK_HEIGHT));
     e1.addComponent(new Renderable(Game.context, Renderable.presentation.packman));
-    e1.addComponent(new Collision(20));
+    e1.addComponent(new Collision(e1,20));
     e1.addComponent(new Moveable(e1,200));
     e1.addComponent(new UserControle(e1));
     var sM =new StateMachine({collision:"UserControle._collision"});
     sM.addState("scared",{collision:UserControle.collisionConsecvences.scared});
     sM.addState("chase",{collision:UserControle.collisionConsecvences.chase});
-    e1.addComponent(sM);
-    Game.entityHandler.add(e1);
+    e1.addComponent(sM); */
+    var player = new Entity('Player');
+    new Pos(player,14*BRICK_WIDTH,25*BRICK_HEIGHT+10);
+    player.addComponent(new Renderable(Game.context,Renderable.presentation.packman));
+    player.addComponent(new Collision(player,20));
+    player.addComponent(new Moveable(player,200));
+    player.addComponent(new UserControle(player));
+    var sM =new StateMachine({collision:"UserControle._collision"});
+    sM.addState("scared",{collision:UserControle.collisionConsecvences.scared});
+    sM.addState("chase",{collision:UserControle.collisionConsecvences.chase});
+    player.addComponent(sM);
+    Game.entityHandler.add(player);
 
     var addGhost = function(name,x,y,render,path,speed,chaseTarget,scaredTarget){
         var e1 = new Entity(name);
         new Pos(e1,x*BRICK_WIDTH,y*BRICK_HEIGHT);
         e1.addComponent(new Renderable(Game.context,render));
-        e1.addComponent(new Collision(20));
+        e1.addComponent(new Collision(e1,20));
         e1.addComponent(new Moveable(e1,speed));
-        new AIControle(e1,Dir.DOWN, path, AIControle.collisionConsecvences.chase);
+        e1.addComponent(new AIControle(e1,Dir.DOWN, path, AIControle.collisionConsecvences.chase,chaseTarget));
         e1.addComponent(new Point(1000,Point.collectActions.ghost));
         var stateMachine = new StateMachine({
             pathfind    :"AIControle._pathfind",
@@ -2670,18 +2708,17 @@ var SCENE = [
 
 
 
-/*Game.sounds = {};
- Game.sounds.chase = new buzz.sound("resources/sounds/Sound1",{formats:["ogg","mp3"]});
- Game.sounds.scared = new buzz.sound("resources/sounds/Sound2",{formats:["ogg","mp3"]});
- Game.sounds.beep =  new beep("resources/sounds/beep.wav");
+ Game.sounds = {};
+ Game.sounds.chase = new buzz.sound("build/sounds/Sound1",{formats:["ogg","mp3"]});
+ Game.sounds.scared = new buzz.sound("build/sounds/Sound2",{formats:["ogg","mp3"]});
+ Game.sounds.beep =  new beep("build/sounds/beep.wav");
 
- */
 
 
 window.onload = function() {
 	var gameArea = document.getElementById('gameArea');
 	Game.init(SCENE_WIDTH, SCENE_HEIGHT, gameArea);
-	//Game._loadScene(SCENE);
+	Game._loadScene(SCENE);
 	Game._loadEntitys();
 	Game.entityHandler.drawRenderable();
 	document.getElementById('messageArea').textContent = "Press S to start";

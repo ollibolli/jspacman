@@ -5,17 +5,17 @@
 
 
 
-/*Game.sounds = {};
- Game.sounds.chase = new buzz.sound("resources/sounds/Sound1",{formats:["ogg","mp3"]});
- Game.sounds.scared = new buzz.sound("resources/sounds/Sound2",{formats:["ogg","mp3"]});
- Game.sounds.beep =  new beep("resources/sounds/beep.wav");
+ Game.sounds = {};
+ Game.sounds.chase = new buzz.sound("build/sounds/Sound1",{formats:["ogg","mp3"]});
+ Game.sounds.scared = new buzz.sound("build/sounds/Sound2",{formats:["ogg","mp3"]});
+ Game.sounds.beep =  new beep("build/sounds/beep.wav");
 
- */
+
 
 window.onload = function() {
 	var gameArea = document.getElementById('gameArea');
 	Game.init(SCENE_WIDTH, SCENE_HEIGHT, gameArea);
-	//Game._loadScene(SCENE);
+	Game._loadScene(SCENE);
 	Game._loadEntitys();
 	Game.entityHandler.drawRenderable();
 	document.getElementById('messageArea').textContent = "Press S to start";

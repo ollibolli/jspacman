@@ -8,7 +8,7 @@ function Collision(entity,entityDiameter){
     if(entityDiameter){
         this.diameter = entityDiameter;
     }else{
-       // throw "Collision.constructor - No entityDiameter Parameter";
+        throw "Collision.constructor - No entityDiameter Parameter";
     }
     this.dependencies = ["Pos"];
 };
@@ -46,7 +46,7 @@ Collision.prototype.detect = function(direction){
         } else {  //use entitys own position;
             collObj = this._getCollisionObjFromPos(that.Pos.getX(),that.Pos.getY(),collObj);
         }
-        //collObj.entities = uniqueArray(collObj.entities);
+        collObj.entities = uniqueArray(collObj.entities);
         return collObj;
 
     }else {
@@ -62,8 +62,8 @@ Collision.prototype._getEntitiesOnTile= function(x,y){
     var collisionEntities = [];
 	for (var i in tileEntities){
 		if (tileEntities[i] == undefined ) log('Collision.getEntitiesOnTile',tileEntities);
-		if (tileEntities[i]._components.hasOwnProperty('Collision')){
-            if (!(tileEntities[i].getEntityComponents().Collision == this.getEntityComponents().Collision)){
+        if (tileEntities[i].getComponents().hasOwnProperty('Collision')){
+            if (!(tileEntities[i].getComponents().Collision == this.getEntityComponents().Collision)){
                 collisionEntities.push(tileEntities[i]);
             }
         }
@@ -78,9 +78,8 @@ Collision.prototype._getEntitiesOnTile= function(x,y){
 Collision.prototype._getCollisionObjFromPos = function (x,y,collObj){
     var entities;
     if( x && y && collObj){
-        if (this._getEntitiesOnTile(x,y)) {
+        if (entities = this._getEntitiesOnTile(x,y)) {
             collObj.collision = true;
-            entities = this._getEntitiesOnTile(x,y);
             for (var i in entities){
                 collObj.entities.push(entities[i]);
             }

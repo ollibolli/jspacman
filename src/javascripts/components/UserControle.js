@@ -15,9 +15,6 @@ function UserControle(entity) {
 
 UserControle.Extend(Component)
 
-UserControle.prototype = new Component();
-UserControle.prototype.constructor = UserControle;
-
 UserControle.prototype.handleEvent = function(event){
 	if (event instanceof Event){
 		switch (event.type) {
@@ -87,7 +84,7 @@ UserControle.prototype._isMovementThouCollision = function (dir){
         move=true;
     } else {
         for (var i in collisionObj.entities) {
-            if (collisionObj.entities[i].hasOwnProperty("Wall")){ //TODO UGLY
+            if (collisionObj.entities[i].getComponents().hasOwnProperty("Wall")){ //TODO UGLY
                 move = false;
             } else {
                 this._collision(collisionObj);
@@ -105,8 +102,8 @@ UserControle.prototype._checkAndCollectPoints = function(){
         var collisionObj= that.Collision.detect(undefined);
         if (collisionObj.collision){
             for (var i in collisionObj.entities) {
-                if (collisionObj.entities[i].hasOwnProperty("Point")){ //TODO ugly hardcoded
-                    collisionObj.entities[i].Point.collect(collisionObj.entities[i]);
+                if (collisionObj.entities[i].getComponents().hasOwnProperty("Point")){ //TODO ugly hardcoded
+                    collisionObj.entities[i].getComponents().Point.collect(collisionObj.entities[i]);
                     return;
                 }
             }
@@ -117,13 +114,13 @@ UserControle.prototype._checkAndCollectPoints = function(){
 
 UserControle.collisionConsecvences = {};
 UserControle.collisionConsecvences.scared = function(collisionObj){
-    if(collisionObj.entities[0].hasOwnProperty('AIControle')){
-        collisionObj.entities[0].AIControle._collision(collisionObj.entities[0]);
+    if(collisionObj.entities[0].getComponents().hasOwnProperty('AIControle')){
+        collisionObj.entities[0].getComponents().AIControle._collision(collisionObj.entities[0]);
     }
 };
 
 UserControle.collisionConsecvences.chase = function(collisionObj){
-     if(collisionObj.entities[0].hasOwnProperty('AIControle')){
+     if(collisionObj.entities[0].getComponents().hasOwnProperty('AIControle')){
          document.getElementById('messageArea').textContent="Game Over";
          Game.stop();
      }

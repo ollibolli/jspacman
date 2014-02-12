@@ -14,7 +14,7 @@
 
 
 var Game = {
-    fps:10,
+    fps:20,
     width: undefined,
     height: undefined,
     score: 0
@@ -91,7 +91,7 @@ Game.draw = function() {
 
 Game.update= function(){
     Game.entityHandler.updateMovable();
-    //Game.entityHandler.trigger(events.update);
+    Game.entityHandler.update();
 };
 
 Game.stop = function(){
@@ -132,12 +132,12 @@ Game.init = function(width,height,element,callback) {
 
 Game._loadScene = function(gameScene){
 
-    var addWall = function(x,y){
+    var addWall = function(x,y,diameter){
         var e1 = new Entity("wall:"+x+","+y+":");
         e1.addComponent(new Pos(e1,x*BRICK_WIDTH,y*BRICK_HEIGHT));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.wall));
         e1.addComponent(new Wall());
-        e1.addComponent(new Collision(20));
+        e1.addComponent(new Collision(e1,20));
         
         Game.entityHandler.add(e1);
     };
@@ -154,7 +154,7 @@ Game._loadScene = function(gameScene){
         e1.addComponent((new Pos(e1,(x*BRICK_WIDTH)+Math.round(BRICK_WIDTH/2),(y*BRICK_HEIGHT)+Math.round(BRICK_HEIGHT/2))));
         e1.addComponent(new Point(10,Point.collectActions.dot,true));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.dot));
-        e1.addComponent(new Collision(10));
+        e1.addComponent(new Collision(e1,10));
         Game.entityHandler.add(e1);
     };
 
@@ -163,7 +163,7 @@ Game._loadScene = function(gameScene){
         e1.addComponent((new Pos(e1,(x*BRICK_WIDTH)+Math.round(BRICK_WIDTH/2),(y*BRICK_HEIGHT)+Math.round(BRICK_HEIGHT/2))));
         e1.addComponent(new Point(50,Point.collectActions.bigDot,true));
         e1.addComponent(new Renderable(Game.context, Renderable.presentation.bigDot));
-        e1.addComponent(new Collision(10));
+        e1.addComponent(new Collision(e1,10));
 
         Game.entityHandler.add(e1);
     };
@@ -190,32 +190,42 @@ Game._loadEntitys= function(){
     stateMachine.addState("scared",{sound:Sound.sounds.scared});
     stateMachine.addState("chase",{sound:Sound.sounds.chase});
     e1.addComponent(stateMachine);
-    Game.entityHandler.add(e1);
-	*/
+    Game.entityHandler.add(e1);*/
+
     var e1 = new Entity("Score");
     e1.addComponent(new Pos(e1,10,10));
     e1.addComponent(new Renderable(Game.context,Renderable.presentation.score));
     Game.entityHandler.add(e1);
 
-    var e1 = new Entity("Player");
-    e1.addComponent(new Pos(e1,14*BRICK_WIDTH,25*BRICK_HEIGHT+10));
+/*    var e1 = new Entity("Player");
+    e1.addComponent(new Pos(e1,14*BRICK_WIDTH,25*BRICK_HEIGHT));
     e1.addComponent(new Renderable(Game.context, Renderable.presentation.packman));
-    e1.addComponent(new Collision(20));
+    e1.addComponent(new Collision(e1,20));
     e1.addComponent(new Moveable(e1,200));
     e1.addComponent(new UserControle(e1));
     var sM =new StateMachine({collision:"UserControle._collision"});
     sM.addState("scared",{collision:UserControle.collisionConsecvences.scared});
     sM.addState("chase",{collision:UserControle.collisionConsecvences.chase});
-    e1.addComponent(sM);
-    Game.entityHandler.add(e1);
+    e1.addComponent(sM); */
+    var player = new Entity('Player');
+    new Pos(player,14*BRICK_WIDTH,25*BRICK_HEIGHT+10);
+    player.addComponent(new Renderable(Game.context,Renderable.presentation.packman));
+    player.addComponent(new Collision(player,20));
+    player.addComponent(new Moveable(player,200));
+    player.addComponent(new UserControle(player));
+    var sM =new StateMachine({collision:"UserControle._collision"});
+    sM.addState("scared",{collision:UserControle.collisionConsecvences.scared});
+    sM.addState("chase",{collision:UserControle.collisionConsecvences.chase});
+    player.addComponent(sM);
+    Game.entityHandler.add(player);
 
     var addGhost = function(name,x,y,render,path,speed,chaseTarget,scaredTarget){
         var e1 = new Entity(name);
         new Pos(e1,x*BRICK_WIDTH,y*BRICK_HEIGHT);
         e1.addComponent(new Renderable(Game.context,render));
-        e1.addComponent(new Collision(20));
+        e1.addComponent(new Collision(e1,20));
         e1.addComponent(new Moveable(e1,speed));
-        new AIControle(e1,Dir.DOWN, path, AIControle.collisionConsecvences.chase);
+        e1.addComponent(new AIControle(e1,Dir.DOWN, path, AIControle.collisionConsecvences.chase,chaseTarget));
         e1.addComponent(new Point(1000,Point.collectActions.ghost));
         var stateMachine = new StateMachine({
             pathfind    :"AIControle._pathfind",

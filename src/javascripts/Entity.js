@@ -32,11 +32,13 @@ Entity.prototype.removeComponent = function(componentType){
 Entity.prototype.update = function(){
     if (this._components.hasOwnProperty('AIControle')){
         this._components.AIControle.update();
-    } 
+    }
+    if (this._components.hasOwnProperty('UserControle')){
+        this._components.UserControle.update();
+    }
     if (this._components.hasOwnProperty('Sound')){
         this._components.Sound.update();
     }
-
 };
 
 Entity.prototype.trigger = function(event){

@@ -50,12 +50,10 @@ Renderable.presentation.score = function(pos){
 
 Renderable.presentation.packman = function(pos){
     //TODO CALCULATE CENTER OF FIG
-    //this._cContext.drawImage(Game.preloadedImages[0],pos.getX()-10,pos.getY()-10);
     this._cContext.beginPath();
     this._cContext.arc(pos.getX(), pos.getY(), 13, 0, 2 * Math.PI, false);
     this._cContext.fillStyle = "#0ff";
     this._cContext.fill();
-
 };
 
 Renderable.presentation.ghost1 = function(pos){

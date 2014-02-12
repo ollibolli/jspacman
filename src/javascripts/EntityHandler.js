@@ -12,8 +12,8 @@ function EntityHandler () {
 EntityHandler.prototype.add = function(entity) {
     if (entity instanceof Entity){
         this.entities.push(entity);
-        if(entity.hasOwnProperty('Pos')){
-            this.addEntityOnTile(entity.Pos.getTile(),entity);
+        if(entity.getComponents().hasOwnProperty('Pos')){
+            Game.tileHandler.addEntityOnTile(entity.getComponents().Pos.getTile(),entity);
         }
     };
 };
@@ -23,7 +23,7 @@ EntityHandler.prototype.removeLast = function() {
 };
 	
 EntityHandler.prototype.remove = function(entity) {
-	    Game.tileHandler.removeEntity(entity,entity.Pos.getTile());
+	    Game.tileHandler.removeEntity(entity,entity.getComponents().Pos.getTile());
 	    for (var i = 0 ;i < this.entities.length; i++){
 	        if (this.entities[i] == entity ){
 	            this.entities.splice(i,1);

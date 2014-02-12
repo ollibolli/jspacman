@@ -24,9 +24,10 @@ Component.prototype.setEntity = function setEntity(entity) {
 
 
 // Implement this
-Component.prototype.handleEvent = function(event) {
-	throw new NotImplementedError('handleEvent Not Implemented');
+Component.prototype.getEntityComponents = function() {
+    return this._entity._components;
 };
+
 
 /**
  * @param entity - of class Entity

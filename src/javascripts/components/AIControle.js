@@ -2,11 +2,11 @@
 
 AIControle.Extend(Component);
 
-function AIControle(entity, startingDirection,pathfind,collision){
+function AIControle(entity, startingDirection,pathfind,collision,target){
 	if (!(entity instanceof Entity)) throw new Error('STORERROR');
 	this.Super(entity); 
     this._direction = startingDirection;
-    this._target;
+    this._target = target;
     this._pathfind = pathfind;
     this._collision = collision;
 } ;
@@ -60,22 +60,23 @@ AIControle.prototype.getTarget=function(){
 };
 
 AIControle.prototype._isMovementThouCollision = function(collisionObj){
-    that = this.getEntityComponents();
+    var that = this.getEntityComponents();
     var move = true;
     var hitUser = false;
     for (var i in collisionObj.entities) {
-        if(collisionObj.entities[i].hasOwnProperty('UserControle')){     //TODO Fix this ugly
+        if(collisionObj.entities[i].getComponents().hasOwnProperty('UserControle')){     //TODO Fix this ugly
             if (!hitUser){
                 this._collision(that,'UserControle');
-                //that.trigger('UserCollition');
+                Game.stop();
+                //alert('Game over');
                 hitUser = true;
             }
             move = true;
-        }else if (collisionObj.entities[i].hasOwnProperty("Wall")){       
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty("Wall")){
             return false;
-        }else if (collisionObj.entities[i].hasOwnProperty('AIControle')){
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty('AIControle')){
             return false;
-        }else if (collisionObj.entities[i].hasOwnProperty('Point')){
+        }else if (collisionObj.entities[i].getComponents().hasOwnProperty('Point')){
             move = true;
         }
     }
@@ -83,7 +84,7 @@ AIControle.prototype._isMovementThouCollision = function(collisionObj){
 }
 
 AIControle.prototype.checkMovementCollisions = function (dir){
-    that = this.getEntityComponents();
+    var that = this.getEntityComponents();
     var collisionObj;
     switch (dir){
         case Dir.RIGHT: 
@@ -147,11 +148,11 @@ AIControle.prototype._getClosestDirToTarget = function(availableDirs,target){
  */
 AIControle.prototype._distToTargetIn2 = function(xOffset,yOffset,target){
     if (isNaN(xOffset) || isNaN(yOffset)) throw new Error("AIControle._distToTarget - parameter not a valid number");
-	if (!target) throw new Error("AIControle._distToTarget - no target" + getPrototypeStringOf(target));
+	if (!target) throw new Error("AIControle._distToTarget - no target");
 	var that = this.getEntityComponents();
     var targetPos ={};
-    targetPos.x=target.Pos.getX();
-    targetPos.y=target.Pos.getY();
+    targetPos.x=target.getComponents().Pos.getX();
+    targetPos.y=target.getComponents().Pos.getY();
     var deltaX = Math.abs(targetPos.x - that.Pos.getX()+xOffset);
     var deltaY = Math.abs(targetPos.y - that.Pos.getY()+yOffset);//Math.round(BRICK_WIDTH/2));
     return (deltaX*deltaX)+(deltaY*deltaY);
@@ -241,14 +242,14 @@ AIControle.pathfinding.semiAgressive = function(callback){
         var pos1= {};
         var pos2= {};
         var retPos={};
-        pos1.x = ent1.Pos.getX();
-        pos1.y = ent1.Pos.getY();
-        pos2.x = ent2.Pos.getX();
-        pos2.y = ent2.Pos.getY();
+        pos1.x = ent1.getComponents().Pos.getX();
+        pos1.y = ent1.getComponents().Pos.getY();
+        pos2.x = ent2.getComponents().Pos.getX();
+        pos2.y = ent2.getComponents().Pos.getY();
         retPos.x=pos1.x + Math.round((pos2.x-pos1.x)/2);
         retPos.y=pos1.y + Math.round((pos2.y-pos1.y)/2);
         var temporaryEntity= new Entity("tempEntity");
-        temporaryEntity.addComponent(new Pos(retPos.x ,retPos.y));
+        temporaryEntity.addComponent(new Pos(temporaryEntity,retPos.x ,retPos.y));
         direkt = this._getClosestDirToTarget(availableDirs,temporaryEntity);
 
         return direkt;
